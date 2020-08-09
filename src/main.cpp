@@ -3,6 +3,8 @@
 #include <poll.h>
 // for fgets() and FILE
 #include <stdio.h>
+// for system()
+#include <stdlib.h>
 // for strlen()
 #include <string.h>
 // for stoi()
@@ -91,6 +93,9 @@ int main()
 			std::cout << "Process has stopped" << std::endl;
 		}
 	}
+
+	// TODO: find a better way to start the game
+	system("xdg-open steam://run/730");
 
 	return 0;
 }
