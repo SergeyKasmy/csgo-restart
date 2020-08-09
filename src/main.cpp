@@ -1,13 +1,7 @@
-// for std::cout & std::cerr
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <poll.h>
-// for fgets() and FILE
-#include <stdio.h>
-// for system()
-#include <stdlib.h>
-// for strlen()
-#include <string.h>
-// for stoi()
 #include <string>
 #include <sys/inotify.h>
 #include <sys/syscall.h>
@@ -25,15 +19,19 @@ void debug_print(Args... args)
 	if(DEBUG) (std::cout << ... << args) << std::endl;
 }
 
+template <class... Args>
+void error(int exit_code, Args... args)
+{
+	std::cerr << "ERROR: ";
+	(std::cerr << ... << args);
+	exit(exit_code);
+}
+
 int main(int argc, char **argv)
 {
 	debug_print("Debug output enabled");
 
-	if(argc < 2)
-	{
-		std::cerr << "ERROR: filename not provided";
-		return 5;
-	}
+	if(argc < 2) error(5, "filename not provided");
 	std::string restart_file = argv[1];
 
 	debug_print("EVENT_SIZE: ", EVENT_SIZE);
@@ -43,30 +41,17 @@ int main(int argc, char **argv)
 
 	{
 		int fd = inotify_init();
-		if(fd == -1)
-		{
-			std::cerr << "ERROR: Failed to create an inotify file descriptor";
-			return 1;
-		}
+		if(fd == -1) error(1, "failed to create an inotify file descriptor");
 		else debug_print("Successfully created an inotify file descriptor: ", fd); 
 
 		{
 			int wd = inotify_add_watch(fd, restart_file.c_str(), IN_MODIFY);
-			if(wd == -1)
-			{
-				std::cerr << "ERROR: Failed to create a watch descriptor";
-				return 2;
-			}
+			if(wd == -1) error(2, "failed to create a watch descriptor");
 			else debug_print("Successfully created a watch descriptor: ",  wd); 
 
 			char buf[BUF_SIZE];
 			ssize_t len = read(fd, buf, BUF_SIZE);
-			if(len == -1)
-			{
-				std::cerr << "ERROR: read() failed on inotify fd";
-				return 3;
-			}
-			
+			if(len == -1) error(3, "read() failed on inotify fd");
 			inotify_rm_watch(fd, wd);
 		}
 
@@ -79,8 +64,9 @@ int main(int argc, char **argv)
 		{
 			FILE *cmd = popen("pidof csgo_linux64", "r");
 
+			// buffer size of 10 should be enough
 			char pid_c[10];
-			fgets(pid_c, 10, cmd);
+			std::fgets(pid_c, 10, cmd);
 
 			pid = std::stoi(pid_c);
 			pclose(cmd);
@@ -89,11 +75,7 @@ int main(int argc, char **argv)
 		debug_print("PID: ", pid);
 		
 		int pidfd = syscall(SYS_pidfd_open, pid, 0);
-		if(pidfd == -1)
-		{
-			std::cerr << "ERROR: pidfd_open() failed";
-			return 4;
-		}
+		if(pidfd == -1) error(4, "pidfd_open() failed");
 		else debug_print("Successfully got a pidfd: ", pidfd);
 
 		{
@@ -108,8 +90,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// TODO: find a better way to start the game
-	system("xdg-open steam://run/730");
+	//std::system("xdg-open steam://run/730");
+	std::system("notify-send test");
 
 	return 0;
 }
