@@ -14,24 +14,32 @@
 #include <unistd.h>
 
 #define EVENT_SIZE ( sizeof(struct inotify_event) )
-
 // approx 16 event
-#define BUF_SIZE ( 16 * (EVENT_SIZE + strlen(restart_file)) )
+#define BUF_SIZE ( 16 * (EVENT_SIZE + restart_file.length()) )
 
+const bool DEBUG = true;
+
+template <class... Args>
+void debug_print(Args... args)
+{
+	if(DEBUG) (std::cout << ... << args) << std::endl;
+}
 
 int main(int argc, char **argv)
 {
-	std::cout << "EVENT_SIZE: " << EVENT_SIZE << '\n';
-	std::cout << "Filename length: " << strlen(restart_file) << '\n';
-	std::cout << "BUF_SIZE: " << BUF_SIZE << std::endl;
+	debug_print("Debug output enabled");
 
 	if(argc < 2)
 	{
 		std::cerr << "ERROR: filename not provided";
 		return 5;
 	}
-	char *restart_file = argv[1];
+	std::string restart_file = argv[1];
 
+	debug_print("EVENT_SIZE: ", EVENT_SIZE);
+	debug_print("Filename: ", restart_file);
+	debug_print("Filename length: ", restart_file.length());
+	debug_print("BUF_SIZE: ", BUF_SIZE);
 
 	{
 		int fd = inotify_init();
@@ -40,16 +48,16 @@ int main(int argc, char **argv)
 			std::cerr << "ERROR: Failed to create an inotify file descriptor";
 			return 1;
 		}
-		else std::cout << "Successfully created an inotify file descriptor: " << fd << std::endl; 
+		else debug_print("Successfully created an inotify file descriptor: ", fd); 
 
 		{
-			int wd = inotify_add_watch(fd, restart_file, IN_MODIFY);
+			int wd = inotify_add_watch(fd, restart_file.c_str(), IN_MODIFY);
 			if(wd == -1)
 			{
 				std::cerr << "ERROR: Failed to create a watch descriptor";
 				return 2;
 			}
-			else std::cout << "Successfully created a watch descriptor: " << wd << std::endl; 
+			else debug_print("Successfully created a watch descriptor: ",  wd); 
 
 			char buf[BUF_SIZE];
 			ssize_t len = read(fd, buf, BUF_SIZE);
@@ -70,7 +78,6 @@ int main(int argc, char **argv)
 		pid_t pid;
 		{
 			FILE *cmd = popen("pidof csgo_linux64", "r");
-			std::cout << "FILE *cmd: " << cmd << std::endl; 
 
 			char pid_c[10];
 			fgets(pid_c, 10, cmd);
@@ -79,7 +86,7 @@ int main(int argc, char **argv)
 			pclose(cmd);
 		}
 
-		std::cout << "PID: " << pid << std::endl;
+		debug_print("PID: ", pid);
 		
 		int pidfd = syscall(SYS_pidfd_open, pid, 0);
 		if(pidfd == -1)
@@ -87,7 +94,7 @@ int main(int argc, char **argv)
 			std::cerr << "ERROR: pidfd_open() failed";
 			return 4;
 		}
-		else std::cout << "Successfully got a pidfd: " << pidfd << std::endl;
+		else debug_print("Successfully got a pidfd: ", pidfd);
 
 		{
 			struct pollfd pidfd_poll[1];
@@ -97,7 +104,7 @@ int main(int argc, char **argv)
 
 			poll(pidfd_poll, 1, -1);
 
-			std::cout << "Process has stopped" << std::endl;
+			debug_print("Process has stopped");
 		}
 	}
 
