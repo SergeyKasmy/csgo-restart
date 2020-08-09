@@ -18,13 +18,20 @@
 // approx 16 event
 #define BUF_SIZE ( 16 * (EVENT_SIZE + strlen(restart_file)) )
 
-const char *restart_file = "/home/gray/.local/share/Steam/userdata/163030748/730/local/cfg/.restart-watch.cfg";
 
-int main()
+int main(int argc, char **argv)
 {
 	std::cout << "EVENT_SIZE: " << EVENT_SIZE << '\n';
 	std::cout << "Filename length: " << strlen(restart_file) << '\n';
 	std::cout << "BUF_SIZE: " << BUF_SIZE << std::endl;
+
+	if(argc < 2)
+	{
+		std::cerr << "ERROR: filename not provided";
+		return 5;
+	}
+	char *restart_file = argv[1];
+
 
 	{
 		int fd = inotify_init();
