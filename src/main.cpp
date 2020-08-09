@@ -7,10 +7,6 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#define EVENT_SIZE ( sizeof(struct inotify_event) )
-// approx 16 event
-#define BUF_SIZE ( 16 * (EVENT_SIZE + restart_file.length()) )
-
 const bool DEBUG = true;
 
 template <class... Args>
@@ -33,32 +29,9 @@ int main(int argc, char **argv)
 
 	if(argc < 2) error(5, "filename not provided");
 	std::string restart_file = argv[1];
-
-	debug_print("EVENT_SIZE: ", EVENT_SIZE);
 	debug_print("Filename: ", restart_file);
-	debug_print("Filename length: ", restart_file.length());
-	debug_print("BUF_SIZE: ", BUF_SIZE);
 
-	{
-		int fd = inotify_init();
-		if(fd == -1) error(1, "failed to create an inotify file descriptor");
-		else debug_print("Successfully created an inotify file descriptor: ", fd); 
-
-		{
-			int wd = inotify_add_watch(fd, restart_file.c_str(), IN_MODIFY);
-			if(wd == -1) error(2, "failed to create a watch descriptor");
-			else debug_print("Successfully created a watch descriptor: ",  wd); 
-
-			char buf[BUF_SIZE];
-			ssize_t len = read(fd, buf, BUF_SIZE);
-			if(len == -1) error(3, "read() failed on inotify fd");
-			inotify_rm_watch(fd, wd);
-		}
-
-		close(fd);
-	}
-
-
+	int pidfd = -1;
 	{
 		pid_t pid;
 		{
@@ -71,27 +44,65 @@ int main(int argc, char **argv)
 			pid = std::stoi(pid_c);
 			pclose(cmd);
 		}
+		debug_print("CSGO PID: ", pid);
 
-		debug_print("PID: ", pid);
-		
-		int pidfd = syscall(SYS_pidfd_open, pid, 0);
+		pidfd = syscall(SYS_pidfd_open, pid, 0);
 		if(pidfd == -1) error(4, "pidfd_open() failed");
 		else debug_print("Successfully got a pidfd: ", pidfd);
-
-		{
-			struct pollfd pidfd_poll[1];
-
-			pidfd_poll[0].fd = pidfd;
-			pidfd_poll[0].events = POLLIN;
-
-			poll(pidfd_poll, 1, -1);
-
-			debug_print("Process has stopped");
-		}
 	}
 
-	//std::system("xdg-open steam://run/730");
-	std::system("notify-send test");
+	int inotfd = -1;
+	{
+		inotfd = inotify_init();
+		if(inotfd == -1) error(1, "failed to create an inotify file descriptor");
+		else debug_print("Successfully created an inotify file descriptor: ", inotfd); 
+
+		int wd = inotify_add_watch(inotfd, restart_file.c_str(), IN_MODIFY);
+		if(wd == -1) error(2, "failed to create a watch descriptor");
+		else debug_print("Successfully created a watch descriptor: ",  wd); 
+	}
+
+	struct pollfd polls[2];
+
+	polls[0].fd = inotfd;
+	polls[0].events = POLLIN;
+
+	polls[1].fd = pidfd;
+	polls[1].events = POLLIN;
+
+	debug_print("polls[0].fd = ", pidfd, '\n', "polls[1].fd = ", inotfd);
+
+	bool restart_requested = false;
+	while(true)
+	{
+		int polled_num = poll(polls, 2, -1);
+
+		if(polled_num == -1) error(6, "poll() failed");
+		if(polled_num > 0)
+		{
+			if(polls[0].revents & POLLIN)
+			{
+				char buf[1024];
+				read(inotfd, buf, 1024);
+				debug_print("watched file modified, restart requested");
+				restart_requested = true;
+			}
+			if(polls[1].revents & POLLIN)
+			{
+				debug_print("csgo has been closed");
+				if(restart_requested)
+				{
+					debug_print("restarting csgo");
+					std::system("xdg-open steam://run/730");
+				}
+				else
+				{
+					debug_print("exiting");
+					break;
+				}
+			}
+		}
+	}
 
 	return 0;
 }
