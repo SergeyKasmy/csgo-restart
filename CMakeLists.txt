@@ -12,4 +12,6 @@ set(SOURCES "${SRC_DIR}/main.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_BUILD_TYPE "Debug")
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Debug")
+endif()

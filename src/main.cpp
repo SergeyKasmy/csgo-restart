@@ -41,7 +41,16 @@ int main(int argc, char **argv)
 			char pid_c[10];
 			std::fgets(pid_c, 10, cmd);
 
-			pid = std::stoi(pid_c);
+			debug_print("pid_c: \"", pid_c, "\"");
+
+			try
+			{
+				pid = std::stoi(pid_c);
+			}
+			catch(std::invalid_argument)
+			{
+				error(7, "csgo_linux64 process not found");
+			}
 			pclose(cmd);
 		}
 		debug_print("CSGO PID: ", pid);
