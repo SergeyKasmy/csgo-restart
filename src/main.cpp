@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -5,9 +6,10 @@
 #include <string>
 #include <sys/inotify.h>
 #include <sys/syscall.h>
+#include <thread>
 #include <unistd.h>
 
-const bool DEBUG = true;
+constexpr bool DEBUG = true;
 
 template <class... Args>
 void debug_print(Args... args)
@@ -34,6 +36,7 @@ int main(int argc, char **argv)
 	int pidfd = -1;
 	{
 		pid_t pid;
+		while(true)
 		{
 			FILE *cmd = popen("pidof csgo_linux64", "r");
 
@@ -49,9 +52,12 @@ int main(int argc, char **argv)
 			}
 			catch(std::invalid_argument)
 			{
-				error(7, "csgo_linux64 process not found");
+				debug_print("csgo_linux64 process not found, waiting");
+				std::this_thread::sleep_for(std::chrono::seconds(2));
+				continue;
 			}
 			pclose(cmd);
+			break;
 		}
 		debug_print("CSGO PID: ", pid);
 
