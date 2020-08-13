@@ -11,8 +11,6 @@
 
 #include "config.h"
 
-constexpr bool DEBUG = BUILD_TYPE == "Debug";
-
 template <class... Args>
 void print(Args... args)
 {
@@ -22,7 +20,7 @@ void print(Args... args)
 template <class... Args>
 void debug_print(Args... args)
 {
-	if(DEBUG) (std::cout << ... << args) << std::endl;
+	if(BUILD_TYPE == "Debug") (std::cout << ... << args) << std::endl;
 }
 
 template <class... Args>
