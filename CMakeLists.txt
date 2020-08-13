@@ -9,10 +9,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(SOURCES "${SRC_DIR}/main.cpp")
 
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
 configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${SRC_DIR}/config.h)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Debug")
-endif()

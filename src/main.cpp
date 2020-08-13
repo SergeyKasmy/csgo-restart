@@ -11,7 +11,13 @@
 
 #include "config.h"
 
-constexpr bool DEBUG = true;
+constexpr bool DEBUG = BUILD_TYPE == "Debug";
+
+template <class... Args>
+void print(Args... args)
+{
+	(std::cout << ... << args) << std::endl;
+}
 
 template <class... Args>
 void debug_print(Args... args)
@@ -30,9 +36,9 @@ void error(int exit_code, Args... args)
 int main(int argc, char **argv)
 {
 	debug_print("Debug output enabled");
-	debug_print("Project: ", PROJ_NAME);
-	debug_print("Version: ", PROJ_VERSION);
-	debug_print("Link: ", PROJ_LINK);
+	print("Project: ", PROJ_NAME);
+	print("Version: ", PROJ_VERSION);
+	print("Link: ", PROJ_LINK);
 
 	if(argc < 2) error(5, "filename not provided");
 	std::string restart_file = argv[1];
@@ -104,7 +110,7 @@ int main(int argc, char **argv)
 				{
 					char buf[1024];
 					read(inotfd, buf, 1024);
-					debug_print("watched file modified, restart requested");
+					print("watched file modified, restart requested");
 					restart_requested = true;
 				}
 				if(polls[1].revents & POLLIN)
@@ -112,13 +118,13 @@ int main(int argc, char **argv)
 					debug_print("csgo has been closed");
 					if(restart_requested)
 					{
-						debug_print("restarting csgo");
+						print("restarting csgo");
 						std::system("xdg-open steam://run/730");
 						break;
 					}
 					else
 					{
-						debug_print("exiting");
+						print("exiting");
 						return 0;
 					}
 				}
