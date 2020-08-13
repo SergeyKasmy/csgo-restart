@@ -1,0 +1,5 @@
+#pragma once
+
+#define PROJ_NAME "@PROJECT_NAME@"
+#define PROJ_VERSION "@PROJECT_VERSION@"
+#define PROJ_LINK "https://github.com/SleeplessSloth/csgo-restart"

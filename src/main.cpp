@@ -9,6 +9,8 @@
 #include <thread>
 #include <unistd.h>
 
+#include "config.h"
+
 constexpr bool DEBUG = true;
 
 template <class... Args>
@@ -28,6 +30,9 @@ void error(int exit_code, Args... args)
 int main(int argc, char **argv)
 {
 	debug_print("Debug output enabled");
+	debug_print("Project: ", PROJ_NAME);
+	debug_print("Version: ", PROJ_VERSION);
+	debug_print("Link: ", PROJ_LINK);
 
 	if(argc < 2) error(5, "filename not provided");
 	std::string restart_file = argv[1];
