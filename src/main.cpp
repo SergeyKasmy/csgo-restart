@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 				{
 					pid = std::stoi(pid_c);
 				}
-				catch(std::invalid_argument)
+				catch(const std::invalid_argument&)
 				{
 					debug_print("csgo_linux64 process not found, waiting");
 					std::this_thread::sleep_for(std::chrono::seconds(2));
