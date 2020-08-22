@@ -1,3 +1,4 @@
 build/
 src/.gdb_history
+src/config.h
 compile_commands.json

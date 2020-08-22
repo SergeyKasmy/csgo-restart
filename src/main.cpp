@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <poll.h>
 #include <string>
@@ -20,7 +21,7 @@ void print(Args... args)
 template <class... Args>
 void debug_print(Args... args)
 {
-	if(BUILD_TYPE == "Debug") (std::cout << ... << args) << std::endl;
+	if(std::string(BUILD_TYPE) == "Debug") (std::cout << ... << args) << std::endl;
 }
 
 template <class... Args>
@@ -38,9 +39,43 @@ int main(int argc, char **argv)
 	print("Version: ", PROJ_VERSION);
 	print("Link: ", PROJ_LINK);
 
-	if(argc < 2) error(5, "filename not provided");
-	std::string restart_file = argv[1];
-	debug_print("Filename: ", restart_file);
+	std::string watch_file;
+	if(argc < 2)
+	{
+		debug_print("watch file not provided, trying to guess");
+		std::filesystem::directory_entry userdata("/home/gray/.local/share/Steam/userdata");
+		std::filesystem::path path;
+		int counter = 0;
+
+		for(const auto& entry : std::filesystem::directory_iterator(userdata))
+		{
+			if(entry.path().filename() != "anonymous")
+			{
+				if(counter == 0)
+				{
+					++counter;
+					path = entry.path().filename();
+				}
+				else error(7, "More than one userdata dir detected, can't autodecide");
+			}
+		}
+
+		if(!path.empty())
+		{
+			path += "730/local/cfg/.restart-watch.cfg";
+			auto cfg = std::filesystem::directory_entry(std::filesystem::absolute(path));
+			debug_print("directory_entry: ", cfg);
+			if(cfg.is_regular_file()) watch_file = cfg.path().u8string();
+		}
+		else error(8, "Couldn't autodetect CSGO userdata folder");
+	}
+	else
+	{
+		watch_file = argv[1];
+	}
+
+	debug_print("Filename: ", watch_file);
+	std::exit(1);
 
 	while(true)
 	{
@@ -81,7 +116,7 @@ int main(int argc, char **argv)
 			if(inotfd == -1) error(1, "failed to create an inotify file descriptor");
 			else debug_print("Successfully created an inotify file descriptor: ", inotfd); 
 	
-			int wd = inotify_add_watch(inotfd, restart_file.c_str(), IN_MODIFY);
+			int wd = inotify_add_watch(inotfd, watch_file.c_str(), IN_MODIFY);
 			if(wd == -1) error(2, "failed to create a watch descriptor");
 			else debug_print("Successfully created a watch descriptor: ",  wd); 
 		}
